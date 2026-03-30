@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冒險者公會 - 登錄所</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: #1a1a2e; /* 深色背景，突出羊皮紙 */
+            background-image: radial-gradient(circle, #2a2a4e 1px, rgba(0,0,0,0) 1px);
+            background-size: 20px 20px;
+            font-family: 'Press Start 2P', 'Courier New', Courier, monospace; /* RPG 字體 */
+            color: #4a3421; /* 深褐色文字 */
+        }
+
+        /* 羊皮紙登入卡片 */
+        .rpg-card { 
+            background: #f1e7c0; /* 羊皮紙底色 */
+            background-image: url('https://www.transparenttextures.com/patterns/parchment.png'); /* 羊皮紙紋理 */
+            padding: 40px; 
+            border-radius: 4px; 
+            box-shadow: 0 0 0 8px #4a3421, 0 0 0 16px #8b5a2b, 0 20px 40px rgba(0,0,0,0.5); /* 多層邊框，營造復古感 */
+            width: 100%; 
+            max-width: 420px; 
+            text-align: center; 
+            border: 4px solid #f1e7c0; /* 內邊框 */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 卡片裝飾角 */
+        .rpg-card::before, .rpg-card::after {
+            content: '◆';
+            position: absolute;
+            color: #8b5a2b;
+            font-size: 18px;
+        }
+        .rpg-card::before { top: 10px; left: 10px; }
+        .rpg-card::after { bottom: 10px; right: 10px; }
+
+        h2 { 
+            color: #8b5a2b; 
+            margin-bottom: 30px; 
+            font-size: 18px; 
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            font-size: 10px;
+            color: #6f4e37;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input { 
+            width: 100%; 
+            padding: 12px 10px; 
+            margin: 5px 0; 
+            border: 4px solid #8b5a2b; /* 粗邊框 */
+            background: #fff8e1; /* 輸入框底色 */
+            border-radius: 0; /* 方正風格 */
+            box-sizing: border-box; 
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px; 
+            color: #4a3421;
+        }
+        input:focus {
+            outline: none;
+            border-color: #cd853f;
+            background: #fff;
+        }
+
+        /* 石磚風格按鈕 */
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: #8b5a2b; /* 石磚色 */
+            background-image: linear-gradient(to bottom, #a06e3e 0%, #8b5a2b 100%);
+            color: #fff8e1; 
+            border: 4px solid #4a3421; 
+            border-radius: 0; 
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px; 
+            cursor: pointer; 
+            transition: all 0.1s; 
+            margin-top: 20px; 
+            text-shadow: 2px 2px 0px #4a3421;
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 4px 0 #4a3421;
+        }
+        button:hover { 
+            background: #a06e3e; 
+        }
+        button:active { 
+            transform: translateY(4px); /* 按下時下沉 */
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 0px 0 #4a3421;
+        }
+        button:disabled {
+            background: #a0a0a0;
+            border-color: #606060;
+            color: #d0d0d0;
+            cursor: not-allowed;
+            text-shadow: none;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #message { 
+            margin-top: 20px; 
+            color: #e74c3c; /* 警告紅 */
+            font-size: 10px; 
+            min-height: 20px; 
+            line-height: 1.5;
+        }
+        
+        .loading { 
+            display: none; 
+            color: #6f4e37; 
+            font-size: 10px;
+            margin-top: 10px;
+        }
+
+        /* 簡單的小粒子特效背景 */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="particles-js"></div>
+
+<div class="rpg-card">
+    <h2>🏰 冒險者公會<br>身份認證</h2>
+    
+    <div class="input-group">
+        <span class="input-label">冒險者代號 (學號)</span>
+        <input type="text" id="stu-id" placeholder="ID...">
+    </div>
+    
+    <div class="input-group">
+        <span class="input-label">通關密語 (密碼)</span>
+        <input type="password" id="stu-pw" placeholder="PW...">
+    </div>
+    
+    <button id="login-btn" onclick="handleLogin()">遞交登錄書</button>
+    
+    <div id="loading" class="loading">正在辨識真偽...</div>
+    <div id="message"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+    // ⚠️ 請替換成你部署好的 Google Apps Script 網址
+    const SCRIPT_URL = "你的_APPS_SCRIPT_網址";
+
+    // 初始化粒子效果 (選用)
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 50 },
+            color: { value: '#fff' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.3, random: true },
+            size: { value: 3, random: true },
+            move: { enable: true, speed: 1, direction: 'none', random: true, out_mode: 'out' }
+        },
+        interactivity: { detect_on: 'canvas', events: { onhover: { enable: false }, onclick: { enable: false } } }
+    });
+
+    async function handleLogin() {
+        const id = document.getElementById('stu-id').value;
+        const pw = document.getElementById('stu-pw').value;
+        const msg = document.getElementById('message');
+        const loading = document.getElementById('loading');
+        const btn = document.getElementById('login-btn');
+
+        if (!id || !pw) {
+            msg.style.color = "#e74c3c";
+            msg.innerText = "× 請填寫完整公會代號與密碼";
+            return;
+        }
+
+        // 顯示載入狀態
+        msg.innerText = "";
+        loading.style.display = "block";
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "cors", // 解決跨網域問題
+                body: JSON.stringify({
+                    action: "login",
+                    id: id,
+                    pw: pw
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.status === "success") {
+                // ✅ 關鍵步驟：存入 localStorage
+                const playerData = {
+                    id: id,
+                    ...result.data,
+                    loginTime: new Date().getTime()
+                };
+                
+                localStorage.setItem('currentPlayer', JSON.stringify(playerData));
+
+                msg.style.color = "#27ae60"; // 成功綠
+                msg.innerText = "✅ 冒險者「" + result.data.name + "」登錄成功！準備出發...";
+                
+                // 2 秒後跳轉
+                setTimeout(() => {
+                    window.location.href = "menu.html"; // 跳轉到遊戲主頁或選單
+                }, 2000);
+
+            } else {
+                msg.style.color = "#e74c3c";
+                msg.innerText = "× " + result.msg + "，請重新確認！";
+            }
+        } catch (error) {
+            console.error(error);
+            msg.style.color = "#e74c3c";
+            msg.innerText = "× 連線公會總部失敗，請檢查網路或公會代碼";
+        } finally {
+            loading.style.display = "none";
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>

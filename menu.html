@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冒險者公會 - 任務大廳</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; 
+            min-height: 100vh; background: #1a1a2e; color: #4a3421;
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        .menu-container {
+            width: 100%; max-width: 500px; background: #f1e7c0;
+            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
+            padding: 30px; border: 8px solid #4a3421; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* 角色資訊區塊 */
+        .character-header {
+            border-bottom: 4px dashed #8b5a2b; margin-bottom: 20px; padding-bottom: 15px;
+            text-align: left;
+        }
+        .player-name { font-size: 16px; color: #8b5a2b; margin-bottom: 10px; }
+        .player-job-lv { font-size: 10px; margin-bottom: 15px; display: block; }
+
+        /* 狀態條樣式 */
+        .stat-row { margin-bottom: 12px; }
+        .stat-label { font-size: 8px; display: block; margin-bottom: 5px; }
+        .bar-container {
+            width: 100%; height: 20px; background: #333; border: 2px solid #4a3421;
+            position: relative; overflow: hidden;
+        }
+        .bar-fill { height: 100%; transition: width 0.5s ease-in-out; }
+        .hp-bar { background: #e74c3c; width: 0%; } /* 紅色 */
+        .mp-bar { background: #3498db; width: 0%; } /* 藍色 */
+        .bar-text {
+            position: absolute; width: 100%; text-align: center;
+            top: 5px; font-size: 8px; color: white; text-shadow: 1px 1px 2px black;
+        }
+
+        /* 詳細數值區 */
+        .grid-stats {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+            background: rgba(139, 90, 43, 0.1); padding: 10px; margin-bottom: 25px;
+        }
+        .stat-box { text-align: center; }
+        .stat-box span { font-size: 8px; display: block; }
+        .stat-num { font-size: 12px; color: #d35400; margin-top: 5px; }
+
+        /* 任務按鈕 */
+        .quest-btn {
+            width: 100%; padding: 20px; margin-bottom: 15px;
+            background: #8b5a2b; color: #fff; border: 4px solid #4a3421;
+            font-family: 'Press Start 2P', monospace; font-size: 12px;
+            cursor: pointer; position: relative; text-align: left;
+            box-shadow: 4px 4px 0px #4a3421; transition: 0.1s;
+        }
+        .quest-btn:hover { background: #a06e3e; transform: translate(-2px, -2px); box-shadow: 6px 6px 0px #4a3421; }
+        .quest-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .quest-icon { margin-right: 10px; }
+
+        .logout-link {
+            font-size: 8px; color: #8b5a2b; text-decoration: underline; cursor: pointer;
+            display: block; margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="menu-container">
+    <div class="character-header">
+        <div class="player-name">冒險者：<span id="name-val">---</span></div>
+        <div class="player-job-lv">職業：<span id="job-val">---</span> | LV：<span id="lv-val">1</span></div>
+        
+        <div class="stat-row">
+            <span class="stat-label">生命力 HP</span>
+            <div class="bar-container">
+                <div id="hp-fill" class="bar-fill hp-bar"></div>
+                <div class="bar-text"><span id="hp-cur">0</span> / <span id="hp-max">0</span></div>
+            </div>
+        </div>
+
+        <div class="stat-row">
+            <span class="stat-label">魔力值 MP</span>
+            <div class="bar-container">
+                <div id="mp-fill" class="bar-fill mp-bar"></div>
+                <div class="bar-text"><span id="mp-cur">0</span> / <span id="mp-max">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-stats">
+        <div class="stat-box">
+            <span>攻擊</span>
+            <div id="atk-val" class="stat-num">0</div>

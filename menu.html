@@ -1,99 +1,80 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>冒險者公會 - 任務大廳</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-        body { 
-            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; 
-            min-height: 100vh; background: #1a1a2e; color: #4a3421;
-            font-family: 'Press Start 2P', monospace;
-        }
+<script>
+    // ⚠️ 請確保這裡的網址與 index.html 的一致
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZDRO5S3zM1EPcPxMVQUGzzARD2L05XnuYzHYl5WPPh36et2lVRJYKkNlDx_-rXNSv/exec";
 
-        .menu-container {
-            width: 100%; max-width: 500px; background: #f1e7c0;
-            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            padding: 30px; border: 8px solid #4a3421; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            position: relative;
-        }
-
-        /* 角色資訊區塊 */
-        .character-header {
-            border-bottom: 4px dashed #8b5a2b; margin-bottom: 20px; padding-bottom: 15px;
-            text-align: left;
-        }
-        .player-name { font-size: 16px; color: #8b5a2b; margin-bottom: 10px; }
-        .player-job-lv { font-size: 10px; margin-bottom: 15px; display: block; }
-
-        /* 狀態條樣式 */
-        .stat-row { margin-bottom: 12px; }
-        .stat-label { font-size: 8px; display: block; margin-bottom: 5px; }
-        .bar-container {
-            width: 100%; height: 20px; background: #333; border: 2px solid #4a3421;
-            position: relative; overflow: hidden;
-        }
-        .bar-fill { height: 100%; transition: width 0.5s ease-in-out; }
-        .hp-bar { background: #e74c3c; width: 0%; } /* 紅色 */
-        .mp-bar { background: #3498db; width: 0%; } /* 藍色 */
-        .bar-text {
-            position: absolute; width: 100%; text-align: center;
-            top: 5px; font-size: 8px; color: white; text-shadow: 1px 1px 2px black;
-        }
-
-        /* 詳細數值區 */
-        .grid-stats {
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
-            background: rgba(139, 90, 43, 0.1); padding: 10px; margin-bottom: 25px;
-        }
-        .stat-box { text-align: center; }
-        .stat-box span { font-size: 8px; display: block; }
-        .stat-num { font-size: 12px; color: #d35400; margin-top: 5px; }
-
-        /* 任務按鈕 */
-        .quest-btn {
-            width: 100%; padding: 20px; margin-bottom: 15px;
-            background: #8b5a2b; color: #fff; border: 4px solid #4a3421;
-            font-family: 'Press Start 2P', monospace; font-size: 12px;
-            cursor: pointer; position: relative; text-align: left;
-            box-shadow: 4px 4px 0px #4a3421; transition: 0.1s;
-        }
-        .quest-btn:hover { background: #a06e3e; transform: translate(-2px, -2px); box-shadow: 6px 6px 0px #4a3421; }
-        .quest-btn:active { transform: translate(2px, 2px); box-shadow: none; }
-        .quest-icon { margin-right: 10px; }
-
-        .logout-link {
-            font-size: 8px; color: #8b5a2b; text-decoration: underline; cursor: pointer;
-            display: block; margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-
-<div class="menu-container">
-    <div class="character-header">
-        <div class="player-name">冒險者：<span id="name-val">---</span></div>
-        <div class="player-job-lv">職業：<span id="job-val">---</span> | LV：<span id="lv-val">1</span></div>
+    window.onload = async function() {
+        const localData = localStorage.getItem('currentPlayer');
         
-        <div class="stat-row">
-            <span class="stat-label">生命力 HP</span>
-            <div class="bar-container">
-                <div id="hp-fill" class="bar-fill hp-bar"></div>
-                <div class="bar-text"><span id="hp-cur">0</span> / <span id="hp-max">0</span></div>
-            </div>
-        </div>
+        if (!localData) {
+            alert("尚未偵測到冒險者身份，請先登錄！");
+            window.location.href = "index.html";
+            return;
+        }
 
-        <div class="stat-row">
-            <span class="stat-label">魔力值 MP</span>
-            <div class="bar-container">
-                <div id="mp-fill" class="bar-fill mp-bar"></div>
-                <div class="bar-text"><span id="mp-cur">0</span> / <span id="mp-max">0</span></div>
-            </div>
-        </div>
-    </div>
+        let player = JSON.parse(localData);
 
-    <div class="grid-stats">
-        <div class="stat-box">
-            <span>攻擊</span>
-            <div id="atk-val" class="stat-num">0</div>
+        // --- 🔄 新增：從 Google Sheets 同步最新數值 ---
+        try {
+            // 向 GAS 發送同步請求 (假設你的 GAS 支援 action: "get_data")
+            const response = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ 
+                    action: "login", // 這裡沿用 login 邏輯來重新抓取該 ID 的最新整列數據
+                    id: player.id, 
+                    pw: player.pw // 如果你的 GAS 驗證需要密碼，請確保存儲了密碼
+                })
+            });
+            
+            const result = await response.json();
+            if (result.status === "success") {
+                // 更新最新的數據並存回 localStorage
+                player = { id: player.id, ...result.data };
+                localStorage.setItem('currentPlayer', JSON.stringify(player));
+                console.log("數據已與公會總部同步");
+            }
+        } catch (e) {
+            console.warn("無法同步最新數據，將使用本地暫存資料。", e);
+        }
+
+        // --- 📊 渲染介面 ---
+        renderPlayerInfo(player);
+    };
+
+    function renderPlayerInfo(player) {
+        // 填入文字資料
+        document.getElementById('name-val').innerText = player.name || "未知冒險者";
+        document.getElementById('job-val').innerText = player.job || "新手";
+        document.getElementById('lv-val').innerText = player.lv || 1;
+        document.getElementById('atk-val').innerText = player.atk || 0;
+        document.getElementById('def-val').innerText = player.def || 0;
+        document.getElementById('spi-val').innerText = player.spi || 0;
+
+        // 設定 HP/MP 數值
+        document.getElementById('hp-cur').innerText = player.hp;
+        document.getElementById('hp-max').innerText = player.hp; // 假設目前最大值等於初始值
+        document.getElementById('mp-cur').innerText = player.mp;
+        document.getElementById('mp-max').innerText = player.mp;
+
+        // 啟動進度條動畫
+        setTimeout(() => {
+            document.getElementById('hp-fill').style.width = "100%";
+            document.getElementById('mp-fill').style.width = "100%";
+        }, 300);
+    }
+
+    function startQuest(type) {
+        if (type === 'dungeon') {
+            alert("正在前往副本：數學森林...");
+            // window.location.href = "ten.html"; // 導向你的遊戲頁面
+        } else {
+            alert("號召隊友中... 大型討伐即將開始！");
+        }
+    }
+
+    function logout() {
+        if(confirm("確定要離開公會嗎？")) {
+            localStorage.removeItem('currentPlayer');
+            window.location.href = "index.html";
+        }
+    }
+</script>

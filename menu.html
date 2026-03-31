@@ -15,22 +15,40 @@
             width: 100%; max-width: 500px; background: #f1e7c0;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             padding: 30px; border: 8px solid #4a3421; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
         }
         .character-header { border-bottom: 4px dashed #8b5a2b; margin-bottom: 20px; padding-bottom: 15px; text-align: left; }
-        .player-name { font-size: 16px; color: #8b5a2b; margin-bottom: 10px; }
-        .player-job-lv { font-size: 10px; margin-bottom: 15px; display: block; }
+        .player-name { font-size: 14px; color: #8b5a2b; margin-bottom: 10px; }
+        .player-job-lv { font-size: 9px; margin-bottom: 15px; display: block; }
+        
+        /* 狀態條 */
         .stat-row { margin-bottom: 12px; }
         .stat-label { font-size: 8px; display: block; margin-bottom: 5px; }
-        .bar-container { width: 100%; height: 20px; background: #333; border: 2px solid #4a3421; position: relative; }
+        .bar-container { width: 100%; height: 16px; background: #333; border: 2px solid #4a3421; position: relative; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease-out; }
         .hp-bar { background: #e74c3c; }
         .mp-bar { background: #3498db; }
-        .bar-text { position: absolute; width: 100%; text-align: center; top: 5px; font-size: 8px; color: white; text-shadow: 1px 1px 2px black; }
+        .bar-text { position: absolute; width: 100%; text-align: center; top: 3px; font-size: 7px; color: white; text-shadow: 1px 1px 2px black; }
+        
         .grid-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: rgba(139, 90, 43, 0.1); padding: 10px; margin-bottom: 25px; }
-        .stat-box { text-align: center; }
-        .stat-num { font-size: 12px; color: #d35400; margin-top: 5px; }
-        .quest-btn { width: 100%; padding: 20px; margin-bottom: 15px; background: #8b5a2b; color: #fff; border: 4px solid #4a3421; font-family: 'Press Start 2P', monospace; font-size: 12px; cursor: pointer; box-shadow: 4px 4px 0px #4a3421; }
+        .stat-box { text-align: center; font-size: 9px; }
+        .stat-num { font-size: 11px; color: #d35400; margin-top: 5px; }
+
+        /* 按鈕樣式 */
+        .quest-btn { 
+            width: 100%; padding: 18px; margin-bottom: 15px; background: #8b5a2b; color: #fff; 
+            border: 4px solid #4a3421; font-family: 'Press Start 2P', monospace; font-size: 11px; 
+            cursor: pointer; box-shadow: 4px 4px 0px #4a3421; display: block;
+        }
         .quest-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .quest-btn.secondary { background: #6b4a2e; font-size: 9px; }
+        
+        /* 選單切換動畫 */
+        .menu-section { display: none; animation: fadeIn 0.3s ease; }
+        .menu-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .back-link { font-size: 8px; cursor: pointer; text-decoration: underline; color: #8b5a2b; margin-top: 10px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -63,10 +81,18 @@
         <div class="stat-box"><span>精神</span><div id="spi-val" class="stat-num">0</div></div>
     </div>
 
-    <button class="quest-btn" onclick="startQuest('dungeon')">⚔️ 1. 副本升級</button>
-    <button class="quest-btn" onclick="startQuest('raid')">🐲 2. 大型討伐</button>
-    
-    <center><span style="font-size:8px; cursor:pointer; text-decoration:underline;" onclick="logout()">登出角色</span></center>
+    <div id="main-menu" class="menu-section active">
+        <button class="quest-btn" onclick="showSubMenu('dungeon-menu')">⚔️ 1. 副本升級</button>
+        <button class="quest-btn" onclick="startQuest('raid')">🐲 2. 大型討伐</button>
+        <center><span class="back-link" onclick="logout()">登出角色</span></center>
+    </div>
+
+    <div id="dungeon-menu" class="menu-section">
+        <div style="text-align: center; font-size: 10px; margin-bottom: 20px; color: #8b5a2b;">- 選擇修練課題 -</div>
+        <button class="quest-btn secondary" onclick="location.href='circle1.html'">🔘 圓周魔王大戰</button>
+        <button class="quest-btn secondary" style="opacity: 0.5; cursor: not-allowed;">🔒 未知領域</button>
+        <center><span class="back-link" onclick="showSubMenu('main-menu')">返回主選單</span></center>
+    </div>
 </div>
 
 <script>
@@ -82,11 +108,9 @@
         }
 
         let player = JSON.parse(localData);
-        
-        // 1. 先用本地舊資料顯示畫面（避免白畫面等待）
         renderPlayerInfo(player);
 
-        // 2. 嘗試同步最新資料
+        // 同步最新資料
         try {
             const response = await fetch(SCRIPT_URL, {
                 method: "POST",
@@ -100,42 +124,52 @@
             
             const result = await response.json();
             if (result.status === "success") {
-                // 合併新資料，但保留原來的 id 和 pw 以防萬一
                 player = { ...player, ...result.data };
                 localStorage.setItem('currentPlayer', JSON.stringify(player));
-                renderPlayerInfo(player); // 再次更新最新數值
+                renderPlayerInfo(player);
             }
         } catch (e) {
-            console.error("同步失敗，將沿用本地資料:", e);
+            console.error("同步失敗:", e);
         }
     };
 
     function renderPlayerInfo(player) {
-        // 更新文字（加入預設值防止 null 導致報錯）
         document.getElementById('name-val').innerText = player.name || "冒險者";
         document.getElementById('job-val').innerText = player.job || "新手";
         document.getElementById('lv-val').innerText = player.lv || 1;
         document.getElementById('atk-val').innerText = player.atk || 0;
         document.getElementById('def-val').innerText = player.def || 0;
         document.getElementById('spi-val').innerText = player.spi || 0;
-        document.getElementById('hp-cur').innerText = player.hp || 0;
-        document.getElementById('hp-max').innerText = player.hp || 0;
-        document.getElementById('mp-cur').innerText = player.mp || 0;
-        document.getElementById('mp-max').innerText = player.mp || 0;
+        
+        const hp = player.hp || 100;
+        const mp = player.mp || 50;
+        document.getElementById('hp-cur').innerText = hp;
+        document.getElementById('hp-max').innerText = hp;
+        document.getElementById('mp-cur').innerText = mp;
+        document.getElementById('mp-max').innerText = mp;
 
-        // 更新血條比例
         setTimeout(() => {
             document.getElementById('hp-fill').style.width = "100%";
             document.getElementById('mp-fill').style.width = "100%";
         }, 100);
     }
 
+    // 選單切換邏輯
+    function showSubMenu(menuId) {
+        // 隱藏所有區塊
+        document.querySelectorAll('.menu-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        // 顯示目標區塊
+        document.getElementById(menuId).classList.add('active');
+    }
+
     function startQuest(type) {
-        alert(type === 'dungeon' ? "前往副本..." : "正在集結隊伍...");
+        if(type === 'raid') alert("大型討伐尚未開啟，請先提升等級！");
     }
 
     function logout() {
-        if(confirm("確定登出？")) {
+        if(confirm("確定要離開公會？")) {
             localStorage.removeItem('currentPlayer');
             window.location.href = "index.html";
         }

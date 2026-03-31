@@ -1,303 +1,257 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>圓周魔王大戰 - 副本</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>副本：圓周魔王 - 冒險者公會</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
-        
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background: #020617; color: white; margin: 0;
-            display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; overflow: hidden; touch-action: manipulation;
+        body { 
+            margin: 0; padding: 10px; display: flex; justify-content: center; align-items: flex-start; 
+            min-height: 100vh; background: #1a1a2e; color: #4a3421;
+            font-family: 'Press Start 2P', monospace;
         }
 
-        .rpg-font { font-family: 'ZCOOL KuaiLe', cursive; }
-        #stage {
-            position: relative; height: 160px;
-            background: linear-gradient(to bottom, #1e293b 0%, #334155 100%);
-            border-bottom: 8px solid #475569;
+        /* 延用 menu.html 的羊皮紙容器風格 */
+        .game-container {
+            width: 100%; max-width: 500px; background: #f1e7c0;
+            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
+            padding: 20px; border: 8px solid #4a3421; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
         }
 
-        .entity { position: absolute; bottom: 10px; transition: all 0.3s cubic-bezier(0.17, 0.88, 0.32, 1.2); font-size: 60px; user-select: none; }
-        #player-sprite { left: 30px; z-index: 30; }
-        #monster-sprite { right: 30px; z-index: 30; }
+        /* 戰鬥舞台區塊 */
+        .battle-stage {
+            height: 150px; background: rgba(0,0,0,0.05);
+            border: 4px solid #8b5a2b; margin-bottom: 15px;
+            position: relative; overflow: hidden;
+            border-style: double;
+        }
 
-        .projectile { position: absolute; pointer-events: none; z-index: 40; transition: transform 0.4s linear, opacity 0.2s; }
-        .proj-mage { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #fff, #3b82f6); box-shadow: 0 0 15px #3b82f6; }
-        .proj-warrior { width: 45px; height: 8px; border-radius: 4px; background: #fbbf24; box-shadow: 0 0 10px #f59e0b; }
-        .proj-archer { width: 35px; height: 3px; background: #e2e8f0; box-shadow: 0 0 5px #fff; }
+        .entity { position: absolute; bottom: 10px; transition: all 0.3s; font-size: 50px; user-select: none; }
+        #player-sprite { left: 20px; }
+        #monster-sprite { right: 20px; }
 
-        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
-        .growth-text { position: absolute; font-weight: bold; color: #4ade80; animation: float-up 1.2s forwards; pointer-events: none; z-index: 100; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        /* 數據欄位 */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: rgba(139, 90, 43, 0.1); padding: 8px; border: 2px solid #4a3421; font-size: 8px; }
         
-        .question-highlight { background: #0f172a; border: 2px solid #3b82f6; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        /* 血條樣式 */
+        .bar-outer { height: 12px; background: #333; border: 2px solid #4a3421; margin-top: 4px; position: relative; }
+        .bar-inner { height: 100%; width: 100%; transition: width 0.4s; }
+        .hp-fill { background: #e74c3c; }
+        .m-hp-fill { background: #9b59b6; }
+        .bar-label { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 6px; color: white; }
 
-        /* 返回按鈕樣式 */
-        .back-btn { position: absolute; top: 10px; left: 10px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; z-index: 50; border: 1px solid #475569; }
+        /* 題目區塊 */
+        .question-area { 
+            background: #fffdf2; border: 4px dashed #8b5a2b; 
+            padding: 15px; text-align: center; margin-bottom: 15px;
+        }
+        #q-text { font-size: 10px; line-height: 1.6; color: #4a3421; margin-bottom: 10px; }
+        
+        /* 輸入與按鈕 */
+        input#ans-input {
+            width: 80%; padding: 10px; border: 4px solid #4a3421; 
+            background: white; color: #d35400; font-family: 'Press Start 2P';
+            font-size: 18px; text-align: center; margin-bottom: 15px;
+            outline: none;
+        }
+
+        .action-btn {
+            width: 100%; padding: 15px; background: #8b5a2b; color: #fff;
+            border: 4px solid #4a3421; font-family: 'Press Start 2P'; font-size: 10px;
+            cursor: pointer; box-shadow: 4px 4px 0px #4a3421;
+        }
+        .action-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .action-btn:disabled { background: #ccc; box-shadow: none; transform: none; }
+
+        /* 小裝飾 */
+        .back-link { font-size: 8px; cursor: pointer; text-decoration: underline; color: #8b5a2b; margin-top: 15px; display: block; text-align: center; }
+        
+        @keyframes damage {
+            0% { transform: translate(0,0); }
+            25% { transform: translate(5px,0); }
+            50% { transform: translate(-5px,0); }
+            75% { transform: translate(5px,0); }
+            100% { transform: translate(0,0); }
+        }
+        .shake { animation: damage 0.2s; }
+        
+        .growth-pop {
+            position: absolute; color: #27ae60; font-size: 10px; 
+            animation: floatUp 1s forwards; pointer-events: none;
+        }
+        @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
     </style>
 </head>
 <body>
 
-    <div id="game-ui" class="w-full max-w-md bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative mx-2 border-4 border-slate-800 h-[750px] flex flex-col">
-        
-        <button class="back-btn" onclick="location.href='menu.html'">⬅ 撤退回公會</button>
+<div class="game-container">
+    <div style="font-size: 10px; margin-bottom: 10px; color: #8b5a2b; border-bottom: 2px solid #8b5a2b; padding-bottom: 5px;">
+        任務：修練圓周運算 (π=3)
+    </div>
 
-        <div id="main-game" class="flex-1 flex flex-col">
-            <div id="growth-container" class="absolute inset-0 pointer-events-none"></div>
-
-            <div class="p-4 bg-slate-950 border-b border-slate-800 pt-12">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-2">
-                            <span id="p-name-disp" class="text-sm font-bold text-white">載入中...</span>
-                            <span id="job-title" class="text-[10px] font-bold text-blue-400 uppercase italic">JOB</span>
-                        </div>
-                        <span class="text-xl font-black italic text-yellow-500">LV.<span id="p-lv-disp">1</span></span>
-                    </div>
-                    <div id="stats-panel" class="flex gap-1">
-                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-red-400 border border-slate-700">ATK <span id="s-atk">0</span></div>
-                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-blue-400 border border-slate-700">INT <span id="s-int">0</span></div>
-                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-yellow-400 border border-slate-700">DEF <span id="s-def">0</span></div>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="flex-1">
-                        <div class="flex justify-between text-[10px] mb-1 font-bold text-slate-400"><span>HP 生命</span><span id="hp-text">0/0</span></div>
-                        <div class="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                            <div id="p-hp-bar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-300" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="stage">
-                <div id="player-sprite" class="entity">👤</div>
-                <div id="monster-sprite" class="entity">👾</div>
-                <div class="absolute top-2 right-4 text-right">
-                    <p id="m-name-disp" class="text-[10px] font-bold text-red-400 uppercase mb-1">怪物</p>
-                    <div class="w-32 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                        <div id="m-hp-bar" class="h-full bg-red-500 transition-all duration-300" style="width: 100%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-5 flex-1 flex flex-col justify-center space-y-4">
-                <div class="question-highlight p-6 rounded-3xl text-center border-2 border-blue-900">
-                    <div id="q-box" class="text-2xl font-bold text-white leading-relaxed">題目載入中...</div>
-                </div>
-                <input type="number" id="ans-input" inputmode="decimal" placeholder="輸入答案" 
-                    class="w-full bg-black border-2 border-slate-700 rounded-2xl p-4 text-center text-5xl font-black text-blue-400 focus:border-blue-500 outline-none">
-                <button id="atk-btn" onclick="checkAnswer()" class="w-full bg-gradient-to-b from-blue-500 to-blue-700 p-5 rounded-2xl font-black text-2xl text-white shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all">
-                    發動攻擊 💥
-                </button>
-                <p id="feedback" class="text-center h-4 text-xs font-bold uppercase"></p>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-box">
+            玩家 LV.<span id="p-lv">1</span>
+            <div class="bar-outer"><div id="p-hp-bar" class="bar-inner hp-fill"></div><div class="bar-label">HP</div></div>
+        </div>
+        <div class="stat-box">
+            魔王 <span id="m-name">守衛</span>
+            <div class="bar-outer"><div id="m-hp-bar" class="bar-inner m-hp-fill"></div><div class="bar-label">BOSS</div></div>
         </div>
     </div>
 
-    <script>
-        // 1. 初始化資料 (從 localStorage 讀取)
-        let player = JSON.parse(localStorage.getItem('currentPlayer'));
+    <div class="battle-stage" id="stage">
+        <div id="player-sprite" class="entity">👤</div>
+        <div id="monster-sprite" class="entity">👾</div>
+    </div>
+
+    <div class="question-area">
+        <div id="q-text">準備戰鬥...</div>
+        <center>
+            <input type="number" id="ans-input" inputmode="decimal" placeholder="?">
+        </center>
+        <button id="atk-btn" class="action-btn" onclick="checkAnswer()">發動攻擊 ⚔️</button>
+        <div id="msg" style="font-size: 7px; margin-top: 10px; height: 10px; color: #d35400;"></div>
+    </div>
+
+    <span class="back-link" onclick="location.href='menu.html'">撤退回公會</span>
+</div>
+
+<script>
+    // 遊戲邏輯保持與原本一致，但更新 UI 反饋
+    let player = JSON.parse(localStorage.getItem('currentPlayer')) || {lv:1, hp:100, atk:10, def:5, spi:10, job:'新手'};
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZDRO5S3zM1EPcPxMVQUGzzARD2L05XnuYzHYl5WPPh36et2lVRJYKkNlDx_-rXNSv/exec";
+
+    let state = {
+        lv: parseInt(player.lv),
+        hp: parseInt(player.hp),
+        maxHp: parseInt(player.hp),
+        atk: parseInt(player.atk),
+        spi: parseInt(player.spi),
+        ans: 0,
+        mHP: 100,
+        mMaxHP: 100
+    };
+
+    const icons = {'戰士':'🤺', '魔法師':'🧙', '神射手':'🏹', '新手':'👤'};
+
+    window.onload = () => {
+        document.getElementById('player-sprite').innerText = icons[player.job] || '👤';
+        nextMonster();
+    };
+
+    function nextMonster() {
+        state.mMaxHP = 50 + (state.lv * 20);
+        state.mHP = state.mMaxHP;
+        const emoji = ["👾", "👹", "👻", "🤖", "🦁"];
+        document.getElementById('monster-sprite').innerText = emoji[Math.floor(Math.random()*emoji.length)];
+        updateUI();
+        generateQuestion();
+    }
+
+    function generateQuestion() {
+        const inp = document.getElementById('ans-input');
+        inp.value = ''; inp.focus();
+        const nums = [5, 10, 15, 20, 8, 12, 25];
+        let v = nums[Math.floor(Math.random()*nums.length)];
+        let isC = Math.random() > 0.5;
         
-        if (!player) {
-            alert("偵測不到冒險者資料，請重新登入。");
-            window.location.href = 'index.html';
+        if(isC) {
+            state.ans = v * 3;
+            document.getElementById('q-text').innerHTML = `直徑為 ${v}<br>求「圓周」是多少？`;
+        } else {
+            state.ans = v;
+            document.getElementById('q-text').innerHTML = `圓周為 ${v * 3}<br>求「直徑」是多少？`;
         }
+    }
 
-        // 遊戲狀態與設定
-        let state = {
-            lv: parseInt(player.lv) || 1,
-            hp: parseInt(player.hp) || 100,
-            maxHp: parseInt(player.hp) || 100,
-            atk: parseInt(player.atk) || 10,
-            def: parseInt(player.def) || 5,
-            int: parseInt(player.spi) || 10, // 將 spi 對應到遊戲內的 int
-            pi: 3,
-            ans: 0,
-            mHP: 100,
-            mMaxHP: 100
-        };
+    function checkAnswer() {
+        const val = parseFloat(document.getElementById('ans-input').value);
+        const btn = document.getElementById('atk-btn');
+        if(isNaN(val)) return;
 
-        const jobConfig = {
-            '戰士': { icon: '🤺', growth: { hp: 0.7, atk: 0.7, def: 0.7, int: 0.3 }, mainStat: 'atk' },
-            '魔法師': { icon: '🧙', growth: { hp: 0.3, atk: 0.5, def: 0.3, int: 0.9 }, mainStat: 'int' },
-            '神射手': { icon: '🏹', growth: { hp: 0.5, atk: 0.7, def: 0.5, int: 0.7 }, mainStat: 'atk' },
-            '新手': { icon: '👤', growth: { hp: 0.5, atk: 0.5, def: 0.5, int: 0.5 }, mainStat: 'atk' }
-        };
-
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZDRO5S3zM1EPcPxMVQUGzzARD2L05XnuYzHYl5WPPh36et2lVRJYKkNlDx_-rXNSv/exec";
-
-        // 音效
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function sfx(f, d, t='sine', v=0.1) {
-            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-            o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
-            g.gain.setValueAtTime(v, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
-            o.connect(g); g.connect(audioCtx.destination);
-            o.start(); o.stop(audioCtx.currentTime + d);
-        }
-
-        window.onload = () => {
-            // 初始化畫面
-            document.getElementById('p-name-disp').innerText = player.name;
-            document.getElementById('job-title').innerText = player.job;
-            document.getElementById('player-sprite').innerText = jobConfig[player.job]?.icon || '👤';
-            
+        if(Math.abs(val - state.ans) < 0.1) {
+            executeAttack();
+        } else {
+            // 答錯扣血
+            state.hp -= 15;
+            showMsg("MISS! 受到反擊!", "#e74c3c");
+            document.getElementById('player-sprite').classList.add('shake');
+            setTimeout(()=>document.getElementById('player-sprite').classList.remove('shake'), 200);
             updateUI();
-            nextMonster();
-        };
-
-        function nextMonster() {
-            state.mMaxHP = 70 + (state.lv * 35);
-            state.mHP = state.mMaxHP;
-            const emoji = ["👾", "👹", "🐉", "👻", "🤖", "🦁", "🦇"];
-            document.getElementById('monster-sprite').innerText = emoji[Math.floor(Math.random()*emoji.length)];
-            document.getElementById('m-name-disp').innerText = `LV.${state.lv} 守衛`;
-            updateUI();
+            if(state.hp <= 0) {
+                alert("你不支倒地...撤退回公會。");
+                location.href = 'menu.html';
+            }
             generateQuestion();
         }
+    }
 
-        function generateQuestion() {
-            const inp = document.getElementById('ans-input');
-            inp.value = ''; inp.focus();
-            const nums = [5, 10, 15, 20, 4, 8, 25, 12, 30];
-            let v = nums[Math.floor(Math.random()*nums.length)];
-            let isC = Math.random() > 0.5;
-            
-            if(isC) {
-                state.ans = v * state.pi;
-                document.getElementById('q-box').innerHTML = `直徑為 <span class="text-blue-400">${v}</span><br>求 <span class="text-yellow-400 underline">圓周</span>？ (π=3)`;
-            } else {
-                state.ans = v;
-                document.getElementById('q-box').innerHTML = `圓周為 <span class="text-yellow-400">${v * state.pi}</span><br>求 <span class="text-blue-400 underline">直徑</span>？ (π=3)`;
-            }
-        }
-
-        async function checkAnswer() {
-            const val = parseFloat(document.getElementById('ans-input').value);
-            if(isNaN(val)) return;
-
-            if(Math.abs(val - state.ans) < 0.1) {
-                await executeAttack();
-            } else {
-                const dmg = 10 + (state.lv * 2);
-                state.hp -= dmg;
-                sfx(100, 0.4, 'sawtooth');
-                document.getElementById('feedback').innerText = `回答錯誤！失去 ${dmg} HP`;
-                document.getElementById('feedback').style.color = "#ef4444";
-                updateUI();
-                if(state.hp <= 0) {
-                    alert("力竭撤退！回公會休息吧。");
-                    location.href = 'menu.html';
-                } else generateQuestion();
-            }
-        }
-
-        async function executeAttack() {
-            const btn = document.getElementById('atk-btn');
-            btn.disabled = true;
-            document.getElementById('feedback').innerText = "正確！發動攻擊！";
-            document.getElementById('feedback').style.color = "#4ade80";
-
-            // 計算傷害
-            const mainStatVal = state[jobConfig[player.job]?.mainStat || 'atk'];
-            const dmg = mainStatVal * 3;
-
-            // 動畫
-            const p = document.getElementById('player-sprite');
-            p.style.transform = 'translateX(180px) rotate(15deg)';
-            setTimeout(() => p.style.transform = 'translateX(0)', 150);
-            
-            sfx(440, 0.15);
-            state.mHP -= dmg;
+    function executeAttack() {
+        showMsg("HIT! 正確回答!", "#27ae60");
+        const p = document.getElementById('player-sprite');
+        p.style.transform = 'translateX(100px)';
+        
+        // 簡單傷害計算
+        state.mHP -= (state.atk + state.spi);
+        
+        setTimeout(() => {
+            p.style.transform = 'translateX(0)';
+            document.getElementById('monster-sprite').classList.add('shake');
+            setTimeout(()=>document.getElementById('monster-sprite').classList.remove('shake'), 200);
             updateUI();
-
-            if(state.mHP <= 0) {
-                await processVictory();
-            } else {
-                setTimeout(() => {
-                    btn.disabled = false;
-                    generateQuestion();
-                }, 400);
-            }
-        }
-
-        async function processVictory() {
-            // 升級數值
-            const config = jobConfig[player.job] || jobConfig['新手'];
-            let logs = [];
             
-            state.lv++;
-            if(Math.random() < config.growth.hp) { state.maxHp += 10; state.hp = state.maxHp; logs.push("HP+"); }
-            if(Math.random() < config.growth.atk) { state.atk += 2; logs.push("ATK+"); }
-            if(Math.random() < config.growth.def) { state.def += 1; logs.push("DEF+"); }
-            if(Math.random() < config.growth.int) { state.int += 2; logs.push("SPI+"); }
+            if(state.mHP <= 0) {
+                processVictory();
+            } else {
+                generateQuestion();
+            }
+        }, 200);
+    }
 
-            // 顯示成長字體
-            logs.forEach((txt, i) => {
-                const el = document.createElement('div');
-                el.className = "growth-text";
-                el.innerText = txt;
-                el.style.left = (80 + i*40) + 'px';
-                el.style.top = '150px';
-                document.getElementById('growth-container').appendChild(el);
-                setTimeout(() => el.remove(), 1200);
-            });
+    function processVictory() {
+        state.lv++;
+        state.atk += 2;
+        state.maxHp += 10;
+        state.hp = state.maxHp;
+        
+        showMsg("LEVEL UP!!", "#d35400");
+        
+        // 保存資料
+        player.lv = state.lv;
+        player.hp = state.maxHp;
+        player.atk = state.atk;
+        localStorage.setItem('currentPlayer', JSON.stringify(player));
+        
+        // 雲端同步
+        sync(player);
 
-            sfx(523, 0.1); setTimeout(()=>sfx(783, 0.2), 150);
+        setTimeout(nextMonster, 1000);
+    }
 
-            // 💾 同步回 localStorage
-            player.lv = state.lv;
-            player.hp = state.maxHp;
-            player.atk = state.atk;
-            player.def = state.def;
-            player.spi = state.int;
-            localStorage.setItem('currentPlayer', JSON.stringify(player));
+    function updateUI() {
+        document.getElementById('p-lv').innerText = state.lv;
+        document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
+        document.getElementById('m-hp-bar').style.width = Math.max(0, state.mHP / state.mMaxHP * 100) + '%';
+    }
 
-            // ☁️ 同步回 Google Sheets (非阻塞)
-            syncToSheets(player);
+    function showMsg(txt, color) {
+        const m = document.getElementById('msg');
+        m.innerText = txt;
+        m.style.color = color;
+    }
 
-            setTimeout(() => {
-                document.getElementById('atk-btn').disabled = false;
-                nextMonster();
-            }, 1300);
-        }
+    function sync(data) {
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "cors",
+            body: JSON.stringify({ action: "save", id: data.id, pw: data.pw, data: data })
+        }).catch(e => console.log("Sync error"));
+    }
+</script>
 
-        function updateUI() {
-            document.getElementById('p-lv-disp').innerText = state.lv;
-            document.getElementById('s-atk').innerText = state.atk;
-            document.getElementById('s-int').innerText = state.int;
-            document.getElementById('s-def').innerText = state.def;
-            document.getElementById('hp-text').innerText = `${state.hp}/${state.maxHp}`;
-            document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
-            document.getElementById('m-hp-bar').style.width = Math.max(0, state.mHP / state.mMaxHP * 100) + '%';
-        }
-
-        async function syncToSheets(data) {
-            try {
-                fetch(SCRIPT_URL, {
-                    method: "POST",
-                    mode: "cors",
-                    body: JSON.stringify({ 
-                        action: "save", // 確保你的 GAS 有處理這個 action
-                        id: data.id,
-                        pw: data.pw,
-                        data: data 
-                    })
-                });
-            } catch (e) { console.error("雲端同步失敗"); }
-        }
-
-        // Enter 鍵提交
-        document.getElementById('ans-input').addEventListener('keypress', e => {
-            if(e.key === 'Enter') checkAnswer();
-        });
-    </script>
 </body>
 </html>

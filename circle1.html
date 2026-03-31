@@ -73,7 +73,7 @@
 
         function nextMonster() {
             // 已優化：第一隻怪血量從 70 降至 35，更適合新手
-            state.mMaxHP = 10 + (state.lv * 1);
+            state.mMaxHP = 10 + (state.lv * 5);
             state.mHP = state.mMaxHP;
             generateQuestion();
             updateUI();

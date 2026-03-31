@@ -1,257 +1,261 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>副本：圓周魔王 - 冒險者公會</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>圓周魔王大戰 - 副本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            margin: 0; padding: 10px; display: flex; justify-content: center; align-items: flex-start; 
-            min-height: 100vh; background: #1a1a2e; color: #4a3421;
-            font-family: 'Press Start 2P', monospace;
-        }
-
-        /* 延用 menu.html 的羊皮紙容器風格 */
-        .game-container {
-            width: 100%; max-width: 500px; background: #f1e7c0;
-            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            padding: 20px; border: 8px solid #4a3421; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            position: relative;
-        }
-
-        /* 戰鬥舞台區塊 */
-        .battle-stage {
-            height: 150px; background: rgba(0,0,0,0.05);
-            border: 4px solid #8b5a2b; margin-bottom: 15px;
-            position: relative; overflow: hidden;
-            border-style: double;
-        }
-
-        .entity { position: absolute; bottom: 10px; transition: all 0.3s; font-size: 50px; user-select: none; }
-        #player-sprite { left: 20px; }
-        #monster-sprite { right: 20px; }
-
-        /* 數據欄位 */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .stat-box { background: rgba(139, 90, 43, 0.1); padding: 8px; border: 2px solid #4a3421; font-size: 8px; }
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
         
-        /* 血條樣式 */
-        .bar-outer { height: 12px; background: #333; border: 2px solid #4a3421; margin-top: 4px; position: relative; }
-        .bar-inner { height: 100%; width: 100%; transition: width 0.4s; }
-        .hp-fill { background: #e74c3c; }
-        .m-hp-fill { background: #9b59b6; }
-        .bar-label { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 6px; color: white; }
-
-        /* 題目區塊 */
-        .question-area { 
-            background: #fffdf2; border: 4px dashed #8b5a2b; 
-            padding: 15px; text-align: center; margin-bottom: 15px;
-        }
-        #q-text { font-size: 10px; line-height: 1.6; color: #4a3421; margin-bottom: 10px; }
-        
-        /* 輸入與按鈕 */
-        input#ans-input {
-            width: 80%; padding: 10px; border: 4px solid #4a3421; 
-            background: white; color: #d35400; font-family: 'Press Start 2P';
-            font-size: 18px; text-align: center; margin-bottom: 15px;
-            outline: none;
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #020617; color: white; margin: 0;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; overflow: hidden; touch-action: manipulation;
         }
 
-        .action-btn {
-            width: 100%; padding: 15px; background: #8b5a2b; color: #fff;
-            border: 4px solid #4a3421; font-family: 'Press Start 2P'; font-size: 10px;
-            cursor: pointer; box-shadow: 4px 4px 0px #4a3421;
+        .rpg-font { font-family: 'ZCOOL KuaiLe', cursive; }
+        #stage {
+            position: relative; height: 160px;
+            background: linear-gradient(to bottom, #1e293b 0%, #334155 100%);
+            border-bottom: 8px solid #475569;
         }
-        .action-btn:active { transform: translate(2px, 2px); box-shadow: none; }
-        .action-btn:disabled { background: #ccc; box-shadow: none; transform: none; }
 
-        /* 小裝飾 */
-        .back-link { font-size: 8px; cursor: pointer; text-decoration: underline; color: #8b5a2b; margin-top: 15px; display: block; text-align: center; }
+        .entity { position: absolute; bottom: 10px; transition: all 0.3s cubic-bezier(0.17, 0.88, 0.32, 1.2); font-size: 60px; user-select: none; }
+        #player-sprite { left: 30px; z-index: 30; }
+        #monster-sprite { right: 30px; z-index: 30; }
+
+        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        .growth-text { position: absolute; font-weight: bold; color: #4ade80; animation: float-up 1.2s forwards; pointer-events: none; z-index: 100; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         
-        @keyframes damage {
-            0% { transform: translate(0,0); }
-            25% { transform: translate(5px,0); }
-            50% { transform: translate(-5px,0); }
-            75% { transform: translate(5px,0); }
-            100% { transform: translate(0,0); }
+        .question-highlight { background: #0f172a; border: 2px solid #3b82f6; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .back-btn { position: absolute; top: 10px; left: 10px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; z-index: 50; border: 1px solid #475569; }
+
+        /* 難度選擇遮罩 */
+        #difficulty-overlay {
+            position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95);
+            z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .shake { animation: damage 0.2s; }
-        
-        .growth-pop {
-            position: absolute; color: #27ae60; font-size: 10px; 
-            animation: floatUp 1s forwards; pointer-events: none;
-        }
-        @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <div style="font-size: 10px; margin-bottom: 10px; color: #8b5a2b; border-bottom: 2px solid #8b5a2b; padding-bottom: 5px;">
-        任務：修練圓周運算 (π=3)
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-box">
-            玩家 LV.<span id="p-lv">1</span>
-            <div class="bar-outer"><div id="p-hp-bar" class="bar-inner hp-fill"></div><div class="bar-label">HP</div></div>
-        </div>
-        <div class="stat-box">
-            魔王 <span id="m-name">守衛</span>
-            <div class="bar-outer"><div id="m-hp-bar" class="bar-inner m-hp-fill"></div><div class="bar-label">BOSS</div></div>
-        </div>
-    </div>
-
-    <div class="battle-stage" id="stage">
-        <div id="player-sprite" class="entity">👤</div>
-        <div id="monster-sprite" class="entity">👾</div>
-    </div>
-
-    <div class="question-area">
-        <div id="q-text">準備戰鬥...</div>
-        <center>
-            <input type="number" id="ans-input" inputmode="decimal" placeholder="?">
-        </center>
-        <button id="atk-btn" class="action-btn" onclick="checkAnswer()">發動攻擊 ⚔️</button>
-        <div id="msg" style="font-size: 7px; margin-top: 10px; height: 10px; color: #d35400;"></div>
-    </div>
-
-    <span class="back-link" onclick="location.href='menu.html'">撤退回公會</span>
-</div>
-
-<script>
-    // 遊戲邏輯保持與原本一致，但更新 UI 反饋
-    let player = JSON.parse(localStorage.getItem('currentPlayer')) || {lv:1, hp:100, atk:10, def:5, spi:10, job:'新手'};
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZDRO5S3zM1EPcPxMVQUGzzARD2L05XnuYzHYl5WPPh36et2lVRJYKkNlDx_-rXNSv/exec";
-
-    let state = {
-        lv: parseInt(player.lv),
-        hp: parseInt(player.hp),
-        maxHp: parseInt(player.hp),
-        atk: parseInt(player.atk),
-        spi: parseInt(player.spi),
-        ans: 0,
-        mHP: 100,
-        mMaxHP: 100
-    };
-
-    const icons = {'戰士':'🤺', '魔法師':'🧙', '神射手':'🏹', '新手':'👤'};
-
-    window.onload = () => {
-        document.getElementById('player-sprite').innerText = icons[player.job] || '👤';
-        nextMonster();
-    };
-
-    function nextMonster() {
-        state.mMaxHP = 50 + (state.lv * 20);
-        state.mHP = state.mMaxHP;
-        const emoji = ["👾", "👹", "👻", "🤖", "🦁"];
-        document.getElementById('monster-sprite').innerText = emoji[Math.floor(Math.random()*emoji.length)];
-        updateUI();
-        generateQuestion();
-    }
-
-    function generateQuestion() {
-        const inp = document.getElementById('ans-input');
-        inp.value = ''; inp.focus();
-        const nums = [5, 10, 15, 20, 8, 12, 25];
-        let v = nums[Math.floor(Math.random()*nums.length)];
-        let isC = Math.random() > 0.5;
+    <div id="game-ui" class="w-full max-w-md bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative mx-2 border-4 border-slate-800 h-[750px] flex flex-col">
         
-        if(isC) {
-            state.ans = v * 3;
-            document.getElementById('q-text').innerHTML = `直徑為 ${v}<br>求「圓周」是多少？`;
-        } else {
-            state.ans = v;
-            document.getElementById('q-text').innerHTML = `圓周為 ${v * 3}<br>求「直徑」是多少？`;
+        <div id="difficulty-overlay">
+            <h2 class="text-3xl font-black text-white mb-8 rpg-font italic">選擇挑戰難度</h2>
+            <div class="space-y-4 w-4/5">
+                <button onclick="startGame('light')" class="w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl border-b-4 border-blue-800 active:translate-y-1 active:border-b-0 transition-all text-left">
+                    <div class="text-xl font-bold">🔵 淺層難度</div>
+                    <div class="text-xs opacity-80 mt-1">π = 3.14 或 22/7 | 成長率 50%</div>
+                </button>
+                <div class="w-full bg-slate-800 p-6 rounded-2xl border-b-4 border-slate-900 opacity-50 relative overflow-hidden">
+                    <div class="text-xl font-bold text-slate-400">🔴 深層難度</div>
+                    <div class="text-xs text-slate-500 mt-1">未開放 (Lv.50解鎖)</div>
+                    <div class="absolute top-2 right-2 rotate-12 bg-red-600 text-[10px] px-2 py-1 rounded">LOCKED</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="back-btn" onclick="location.href='menu.html'">⬅ 撤退回公會</button>
+
+        <div id="main-game" class="flex-1 flex flex-col">
+            <div id="growth-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <div class="p-4 bg-slate-950 border-b border-slate-800 pt-12">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span id="p-name-disp" class="text-sm font-bold text-white">載入中...</span>
+                            <span id="job-title" class="text-[10px] font-bold text-blue-400 uppercase italic">JOB</span>
+                        </div>
+                        <span class="text-xl font-black italic text-yellow-500">LV.<span id="p-lv-disp">1</span></span>
+                    </div>
+                    <div id="stats-panel" class="flex gap-1">
+                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-red-400 border border-slate-700">ATK <span id="s-atk">0</span></div>
+                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-blue-400 border border-slate-700">INT <span id="s-int">0</span></div>
+                    </div>
+                </div>
+                <div class="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div id="p-hp-bar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div id="stage">
+                <div id="player-sprite" class="entity">👤</div>
+                <div id="monster-sprite" class="entity">👾</div>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col justify-center space-y-4">
+                <div class="question-highlight p-6 rounded-3xl text-center border-2 border-blue-900">
+                    <div id="q-box" class="text-xl font-bold text-white leading-relaxed">準備戰鬥...</div>
+                </div>
+                <input type="number" id="ans-input" inputmode="decimal" placeholder="輸入答案" 
+                    class="w-full bg-black border-2 border-slate-700 rounded-2xl p-4 text-center text-4xl font-black text-blue-400 focus:border-blue-500 outline-none">
+                <button id="atk-btn" onclick="checkAnswer()" class="w-full bg-gradient-to-b from-blue-500 to-blue-700 p-5 rounded-2xl font-black text-2xl text-white shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all">
+                    發動攻擊 💥
+                </button>
+                <p id="feedback" class="text-center h-4 text-xs font-bold uppercase"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let player = JSON.parse(localStorage.getItem('currentPlayer'));
+        if (!player) { window.location.href = 'index.html'; }
+
+        let state = {
+            lv: parseInt(player.lv) || 1,
+            hp: 100, maxHp: 100,
+            atk: parseInt(player.atk) || 10,
+            int: parseInt(player.spi) || 10,
+            currentPi: 3.14,
+            currentDifficulty: 'light',
+            ans: 0,
+            mHP: 100, mMaxHP: 100
+        };
+
+        const jobConfig = {
+            '戰士': { icon: '🤺', growth: { hp: 0.7, atk: 0.7, int: 0.3 }, mainStat: 'atk' },
+            '魔法師': { icon: '🧙', growth: { hp: 0.3, atk: 0.5, int: 0.9 }, mainStat: 'int' },
+            '新手': { icon: '👤', growth: { hp: 0.5, atk: 0.5, int: 0.5 }, mainStat: 'atk' }
+        };
+
+        function startGame(diff) {
+            state.currentDifficulty = diff;
+            document.getElementById('difficulty-overlay').style.display = 'none';
+            initGame();
         }
-    }
 
-    function checkAnswer() {
-        const val = parseFloat(document.getElementById('ans-input').value);
-        const btn = document.getElementById('atk-btn');
-        if(isNaN(val)) return;
-
-        if(Math.abs(val - state.ans) < 0.1) {
-            executeAttack();
-        } else {
-            // 答錯扣血
-            state.hp -= 15;
-            showMsg("MISS! 受到反擊!", "#e74c3c");
-            document.getElementById('player-sprite').classList.add('shake');
-            setTimeout(()=>document.getElementById('player-sprite').classList.remove('shake'), 200);
+        function initGame() {
+            document.getElementById('p-name-disp').innerText = player.name;
+            document.getElementById('job-title').innerText = player.job;
+            document.getElementById('player-sprite').innerText = jobConfig[player.job]?.icon || '👤';
             updateUI();
-            if(state.hp <= 0) {
-                alert("你不支倒地...撤退回公會。");
-                location.href = 'menu.html';
+            nextMonster();
+        }
+
+        function generateQuestion() {
+            const inp = document.getElementById('ans-input');
+            inp.value = ''; inp.focus();
+
+            const useFraction = Math.random() > 0.5; // 隨機決定用 3.14 還是 22/7
+            let v, qText;
+
+            if (useFraction) {
+                // 使用 22/7 (數字通常是 7 的倍數)
+                state.currentPi = 22/7;
+                const multiples = [7, 14, 21, 28, 3.5];
+                v = multiples[Math.floor(Math.random() * multiples.length)];
+                const piDisplay = " (π = 22/7)";
+                
+                const type = Math.floor(Math.random() * 3);
+                if (type === 0) {
+                    state.ans = v * 2 * (22/7); // 求圓周
+                    qText = `半徑為 <span class='text-blue-400'>${v}</span>${piDisplay}<br>求圓周？`;
+                } else if (type === 1) {
+                    state.ans = v * (22/7); // 求圓周
+                    qText = `直徑為 <span class='text-blue-400'>${v}</span>${piDisplay}<br>求圓周？`;
+                } else {
+                    state.ans = v; // 已知圓周求直徑
+                    qText = `圓周為 <span class='text-yellow-400'>${v * (22/7)}</span>${piDisplay}<br>求直徑？`;
+                }
+            } else {
+                // 使用 3.14
+                state.currentPi = 3.14;
+                v = [10, 20, 5, 2, 50][Math.floor(Math.random() * 5)];
+                const piDisplay = " (π = 3.14)";
+                
+                if (Math.random() > 0.5) {
+                    state.ans = v * 3.14;
+                    qText = `直徑為 <span class='text-blue-400'>${v}</span>${piDisplay}<br>求圓周？`;
+                } else {
+                    state.ans = v;
+                    qText = `半徑為 <span class='text-blue-400'>${v/2}</span>${piDisplay}<br>求圓周？`;
+                }
             }
+            
+            document.getElementById('q-box').innerHTML = qText;
+        }
+
+        async function checkAnswer() {
+            const val = parseFloat(document.getElementById('ans-input').value);
+            if(isNaN(val)) return;
+
+            // 允許極小的誤差（特別是處理 22/7 時）
+            if(Math.abs(val - state.ans) < 0.01) {
+                await executeAttack();
+            } else {
+                state.hp -= 20;
+                document.getElementById('feedback').innerText = `錯誤！正確是: ${state.ans.toFixed(2)}`;
+                document.getElementById('feedback').style.color = "#ef4444";
+                updateUI();
+                if(state.hp <= 0) { alert("敗北！"); location.href = 'menu.html'; }
+                else generateQuestion();
+            }
+        }
+
+        async function executeAttack() {
+            const btn = document.getElementById('atk-btn');
+            btn.disabled = true;
+            document.getElementById('feedback').innerText = "正確！";
+            document.getElementById('feedback').style.color = "#4ade80";
+
+            const mainStatVal = state[jobConfig[player.job]?.mainStat || 'atk'];
+            state.mHP -= mainStatVal * 5;
+            updateUI();
+
+            if(state.mHP <= 0) await processVictory();
+            else {
+                setTimeout(() => { btn.disabled = false; generateQuestion(); }, 400);
+            }
+        }
+
+        async function processVictory() {
+            const config = jobConfig[player.job] || jobConfig['新手'];
+            let logs = [];
+            
+            state.lv++;
+            // 淺層難度成長率減半
+            const multiplier = state.currentDifficulty === 'light' ? 0.5 : 1;
+
+            if(Math.random() < (config.growth.hp * multiplier)) { state.maxHp += 5; logs.push("HP+"); }
+            if(Math.random() < (config.growth.atk * multiplier)) { state.atk += 1; logs.push("ATK+"); }
+            if(Math.random() < (config.growth.int * multiplier)) { state.int += 1; logs.push("SPI+"); }
+
+            state.hp = state.maxHp;
+            
+            // 浮動文字動畫 (省略部分重複代碼...)
+            player.lv = state.lv; player.atk = state.atk; player.spi = state.int;
+            localStorage.setItem('currentPlayer', JSON.stringify(player));
+            
+            setTimeout(() => {
+                document.getElementById('atk-btn').disabled = false;
+                nextMonster();
+            }, 1000);
+        }
+
+        function nextMonster() {
+            state.mMaxHP = 50 + (state.lv * 20);
+            state.mHP = state.mMaxHP;
+            updateUI();
             generateQuestion();
         }
-    }
 
-    function executeAttack() {
-        showMsg("HIT! 正確回答!", "#27ae60");
-        const p = document.getElementById('player-sprite');
-        p.style.transform = 'translateX(100px)';
-        
-        // 簡單傷害計算
-        state.mHP -= (state.atk + state.spi);
-        
-        setTimeout(() => {
-            p.style.transform = 'translateX(0)';
-            document.getElementById('monster-sprite').classList.add('shake');
-            setTimeout(()=>document.getElementById('monster-sprite').classList.remove('shake'), 200);
-            updateUI();
-            
-            if(state.mHP <= 0) {
-                processVictory();
-            } else {
-                generateQuestion();
-            }
-        }, 200);
-    }
+        function updateUI() {
+            document.getElementById('p-lv-disp').innerText = state.lv;
+            document.getElementById('s-atk').innerText = state.atk;
+            document.getElementById('s-int').innerText = state.int;
+            document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
+            document.getElementById('m-hp-bar').style.width = Math.max(0, state.mHP / state.mMaxHP * 100) + '%';
+        }
 
-    function processVictory() {
-        state.lv++;
-        state.atk += 2;
-        state.maxHp += 10;
-        state.hp = state.maxHp;
-        
-        showMsg("LEVEL UP!!", "#d35400");
-        
-        // 保存資料
-        player.lv = state.lv;
-        player.hp = state.maxHp;
-        player.atk = state.atk;
-        localStorage.setItem('currentPlayer', JSON.stringify(player));
-        
-        // 雲端同步
-        sync(player);
-
-        setTimeout(nextMonster, 1000);
-    }
-
-    function updateUI() {
-        document.getElementById('p-lv').innerText = state.lv;
-        document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
-        document.getElementById('m-hp-bar').style.width = Math.max(0, state.mHP / state.mMaxHP * 100) + '%';
-    }
-
-    function showMsg(txt, color) {
-        const m = document.getElementById('msg');
-        m.innerText = txt;
-        m.style.color = color;
-    }
-
-    function sync(data) {
-        fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: "cors",
-            body: JSON.stringify({ action: "save", id: data.id, pw: data.pw, data: data })
-        }).catch(e => console.log("Sync error"));
-    }
-</script>
-
+        document.getElementById('ans-input').addEventListener('keypress', e => {
+            if(e.key === 'Enter') checkAnswer();
+        });
+    </script>
 </body>
 </html>

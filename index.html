@@ -24,7 +24,6 @@
 
         h2 { color: #8b5a2b; margin-bottom: 20px; font-size: 16px; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
         
-        /* 職業選擇卡片樣式 */
         .job-container { display: none; text-align: left; margin-top: 20px; }
         .job-option { 
             background: rgba(139, 90, 43, 0.1); border: 3px solid #8b5a2b; 
@@ -51,8 +50,6 @@
 
         #message { margin-top: 20px; font-size: 10px; line-height: 1.6; min-height: 40px; }
         #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: -1; }
-        
-        .stat-val { color: #d35400; }
     </style>
 </head>
 <body>
@@ -94,7 +91,25 @@
 <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZDRO5S3zM1EPcPxMVQUGzzARD2L05XnuYzHYl5WPPh36et2lVRJYKkNlDx_-rXNSv/exec";
-    let tempUserData = null; // 暫存登入成功後的基礎資料
+    let tempUserData = null;
+
+    // --- 🔑 自動登入檢查邏輯 ---
+    window.onload = function() {
+        const savedPlayer = localStorage.getItem('currentPlayer');
+        if (savedPlayer) {
+            const player = JSON.parse(savedPlayer);
+            // 如果本地已有完整職業資料，顯示歡迎詞並跳轉
+            if (player.job && player.job !== "新手") {
+                document.getElementById('login-ui').style.display = "none";
+                const msg = document.getElementById('message');
+                msg.style.color = "#27ae60";
+                msg.innerHTML = `🌟 歡迎回來，${player.name}！<br>正在載入冒險日誌...`;
+                setTimeout(() => {
+                    window.location.href = "menu.html";
+                }, 1200);
+            }
+        }
+    };
 
     particlesJS('particles-js', {
         particles: {
@@ -128,8 +143,6 @@
 
             if (result.status === "success") {
                 tempUserData = { id: id, ...result.data };
-                
-                // 檢查是否已有職業
                 if (!tempUserData.job || tempUserData.job === "" || tempUserData.job === "新手") {
                     showJobSelection();
                 } else {
@@ -156,31 +169,24 @@
     async function pickJob(jobName, stats) {
         const msg = document.getElementById('message');
         const loading = document.getElementById('loading');
-        
         if(!confirm(`確定要以 ${jobName} 的身份開始冒險嗎？`)) return;
 
         document.getElementById('job-ui').style.display = "none";
         loading.style.display = "block";
         msg.innerText = "正在將契約寫入星辰...";
 
-        // 整合玩家完整數據
         const finalData = {
             ...tempUserData,
-            job: jobName,
-            lv: 1,
-            hp: stats.hp,
-            mp: stats.mp,
-            atk: stats.atk,
-            def: stats.def,
-            spi: stats.spi
+            job: jobName, lv: 1,
+            hp: stats.hp, mp: stats.mp,
+            atk: stats.atk, def: stats.def, spi: stats.spi
         };
 
         try {
-            const response = await fetch(SCRIPT_URL, {
+            await fetch(SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "save", ...finalData })
             });
-            
             completeLogin(finalData);
         } catch (e) {
             alert("同步失敗，請重新嘗試！");
@@ -191,12 +197,10 @@
 
     function completeLogin(player) {
         localStorage.setItem('currentPlayer', JSON.stringify(player));
-        
         const msg = document.getElementById('message');
         msg.style.color = "#27ae60";
         msg.innerHTML = `✅ 冒險者「${player.name}」已登入<br>` + 
                         `<span style="font-size:8px;">[${player.job}] LV:${player.lv} ATK:${player.atk} DEF:${player.def}</span>`;
-        
         setTimeout(() => {
             window.location.href = "menu.html";
         }, 2000);

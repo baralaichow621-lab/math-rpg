@@ -1,78 +1,225 @@
-<style>
-    /* ... 略過 ... */
-    .question-highlight { background: #0f172a; border: 2px solid #3b82f6; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); }
-    
-    /* 確保單行顯示的調整 */
-    #q-box { 
-        font-size: 1.15rem; /* 稍微縮小字體以確保單行 */
-        white-space: nowrap; /* 強制不換行 */
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    /* ... 略過 ... */
-</style>
-
-<script>
-    // ... 初始化資料與 state 保持不變 ...
-    let state = {
-        // ... 其他屬性 ...
-        pi: 3.14, // 預設值
-        ans: 0
-    };
-
-    function generateQuestion() {
-        const inp = document.getElementById('ans-input');
-        inp.value = ''; inp.focus();
-
-        // 隨機切換圓周率類型
-        const useFractionPi = Math.random() > 0.5;
-        const piVal = useFractionPi ? (22 / 7) : 3.14;
-        const piText = useFractionPi ? "22/7" : "3.14";
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>圓周魔王大戰 - 精準版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
         
-        // 根據圓周率類型選擇適合的數字（如果是 22/7，選 7 的倍數）
-        const nums = useFractionPi ? [7, 14, 21, 28, 35] : [5, 10, 20, 25, 40];
-        const v = nums[Math.floor(Math.random() * nums.length)];
-        
-        const type = Math.floor(Math.random() * 3); 
-        let qHtml = "";
-
-        if (type === 0) { // 求圓周
-            state.ans = v * piVal;
-            qHtml = `直徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">圓周</span>？ (π≈${piText})`;
-        } 
-        else if (type === 1) { // 半徑轉直徑 (基礎題)
-            state.ans = v * 2;
-            qHtml = `半徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">直徑</span>？`;
-        } 
-        else { // 已知圓周求直徑
-            // 為了讓答案好算，這裡反向生成題目
-            const circleVal = (v * piVal).toFixed(2);
-            state.ans = v;
-            qHtml = `圓周 <span class="text-yellow-400">${circleVal}</span>，求 <span class="text-blue-400 underline">直徑</span>？ (π≈${piText})`;
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #020617; color: white; margin: 0;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; overflow: hidden; touch-action: manipulation;
         }
 
-        document.getElementById('q-box').innerHTML = qHtml;
-    }
+        #game-ui { height: 750px; }
+        .rpg-font { font-family: 'ZCOOL KuaiLe', cursive; }
+        #stage {
+            position: relative; height: 160px;
+            background: linear-gradient(to bottom, #1e293b 0%, #334155 100%);
+            border-bottom: 8px solid #475569;
+        }
 
-    async function checkAnswer() {
-        const val = parseFloat(document.getElementById('ans-input').value);
-        if (isNaN(val)) return;
+        .entity { position: absolute; bottom: 10px; transition: all 0.3s cubic-bezier(0.17, 0.88, 0.32, 1.2); font-size: 60px; user-select: none; }
+        #player-sprite { left: 30px; z-index: 30; }
+        #monster-sprite { right: 30px; z-index: 30; }
 
-        // 考慮到 22/7 可能會有小數點誤差，增加判斷寬容度
-        if (Math.abs(val - state.ans) < 0.11) {
-            await executeAttack();
-        } else {
-            // 錯誤處理邏輯保持不變...
-            const dmg = 10 + (state.lv * 2);
-            state.hp -= dmg;
-            document.getElementById('feedback').innerText = `錯誤！正確應為 ${state.ans.toFixed(2)}`;
-            document.getElementById('feedback').style.color = "#ef4444";
+        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        .growth-text { position: absolute; font-weight: bold; color: #4ade80; animation: float-up 1.2s forwards; pointer-events: none; z-index: 100; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        /* 強化題目單行顯示 */
+        .question-highlight { 
+            background: #0f172a; border: 2px solid #3b82f6; 
+            box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); 
+            min-height: 80px; display: flex; align-items: center; justify-content: center;
+        }
+        #q-box { 
+            font-size: 1.1rem; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            padding: 0 10px;
+        }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .back-btn { position: absolute; top: 10px; left: 10px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; z-index: 50; border: 1px solid #475569; }
+    </style>
+</head>
+<body>
+
+    <div id="game-ui" class="w-full max-w-md bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative mx-2 border-4 border-slate-800 flex flex-col">
+        
+        <button class="back-btn" onclick="location.href='menu.html'">⬅ 撤退回公會</button>
+
+        <div id="main-game" class="flex-1 flex flex-col">
+            <div id="growth-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <div class="p-4 bg-slate-950 border-b border-slate-800 pt-12">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span id="p-name-disp" class="text-sm font-bold text-white">冒險者</span>
+                            <span id="job-title" class="text-[10px] font-bold text-blue-400 uppercase italic">JOB</span>
+                        </div>
+                        <span class="text-xl font-black italic text-yellow-500">LV.<span id="p-lv-disp">1</span></span>
+                    </div>
+                    <div id="stats-panel" class="flex gap-1">
+                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-red-400 border border-slate-700">ATK <span id="s-atk">0</span></div>
+                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-blue-400 border border-slate-700">SPI <span id="s-spi">0</span></div>
+                    </div>
+                </div>
+                <div class="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div id="p-hp-bar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div id="stage">
+                <div id="player-sprite" class="entity">👤</div>
+                <div id="monster-sprite" class="entity">👾</div>
+                <div class="absolute top-2 right-4 text-right">
+                    <div class="w-32 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                        <div id="m-hp-bar" class="h-full bg-red-500 transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col justify-center space-y-4">
+                <div class="question-highlight p-4 rounded-3xl text-center border-2 border-blue-900">
+                    <div id="q-box" class="font-bold text-white">題目載入中...</div>
+                </div>
+                <input type="number" id="ans-input" inputmode="decimal" placeholder="輸入答案" 
+                    class="w-full bg-black border-2 border-slate-700 rounded-2xl p-4 text-center text-5xl font-black text-blue-400 focus:border-blue-500 outline-none">
+                <button id="atk-btn" onclick="checkAnswer()" class="w-full bg-gradient-to-b from-blue-500 to-blue-700 p-5 rounded-2xl font-black text-2xl text-white shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all">
+                    發動攻擊 💥
+                </button>
+                <p id="feedback" class="text-center h-4 text-xs font-bold uppercase"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let player = JSON.parse(localStorage.getItem('currentPlayer')) || { name: "未知", job: "新手", lv: 1, hp: 100, atk: 10, spi: 10, def: 5 };
+        
+        let state = {
+            lv: parseInt(player.lv),
+            hp: parseInt(player.hp),
+            maxHp: parseInt(player.hp),
+            atk: parseInt(player.atk),
+            spi: parseInt(player.spi),
+            ans: 0,
+            mHP: 100,
+            mMaxHP: 100
+        };
+
+        const jobConfig = {
+            '戰士': { icon: '🤺', growth: { hp: 0.7, atk: 0.7, spi: 0.3 }, mainStat: 'atk' },
+            '魔法師': { icon: '🧙', growth: { hp: 0.3, atk: 0.3, spi: 0.9 }, mainStat: 'spi' },
+            '新手': { icon: '👤', growth: { hp: 0.5, atk: 0.5, spi: 0.5 }, mainStat: 'atk' }
+        };
+
+        window.onload = () => {
+            document.getElementById('p-name-disp').innerText = player.name;
+            document.getElementById('job-title').innerText = player.job;
+            document.getElementById('player-sprite').innerText = jobConfig[player.job]?.icon || '👤';
             updateUI();
-            if(state.hp <= 0) {
-                alert("力竭撤退！");
-                location.href = 'menu.html';
-            } else generateQuestion();
+            nextMonster();
+        };
+
+        function nextMonster() {
+            state.mMaxHP = 70 + (state.lv * 35);
+            state.mHP = state.mMaxHP;
+            generateQuestion();
+            updateUI();
         }
-    }
-    // ... 其餘函數（executeAttack, updateUI 等）保持不變 ...
-</script>
+
+        function generateQuestion() {
+            const inp = document.getElementById('ans-input');
+            inp.value = ''; inp.focus();
+
+            const useFractionPi = Math.random() > 0.5;
+            const piVal = useFractionPi ? (22 / 7) : 3.14;
+            const piText = useFractionPi ? "22/7" : "3.14";
+            
+            // 22/7 配合 7 的倍數，3.14 配合 10 的倍數
+            const nums = useFractionPi ? [7, 14, 21, 28, 35] : [5, 10, 20, 40, 50];
+            const v = nums[Math.floor(Math.random() * nums.length)];
+            
+            const type = Math.floor(Math.random() * 3); 
+            let qHtml = "";
+
+            if (type === 0) { // 求圓周
+                state.ans = v * piVal;
+                qHtml = `直徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">圓周</span>？ (π≈${piText})`;
+            } 
+            else if (type === 1) { // 半徑轉直徑
+                state.ans = v * 2;
+                qHtml = `半徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">直徑</span>？`;
+            } 
+            else { // 已知圓周求直徑
+                const circleVal = (v * piVal).toFixed(2);
+                state.ans = v;
+                qHtml = `圓周 <span class="text-yellow-400">${circleVal}</span>，求 <span class="text-blue-400 underline">直徑</span>？ (π≈${piText})`;
+            }
+            document.getElementById('q-box').innerHTML = qHtml;
+        }
+
+        async function checkAnswer() {
+            const val = parseFloat(document.getElementById('ans-input').value);
+            if (isNaN(val)) return;
+
+            if (Math.abs(val - state.ans) < 0.11) {
+                executeAttack();
+            } else {
+                state.hp -= 15;
+                document.getElementById('feedback').innerText = `錯誤！正確應為 ${state.ans.toFixed(2)}`;
+                document.getElementById('feedback').style.color = "#ef4444";
+                updateUI();
+                if(state.hp <= 0) { alert("力竭撤退！"); location.href = 'menu.html'; }
+                else generateQuestion();
+            }
+        }
+
+        function executeAttack() {
+            document.getElementById('feedback').innerText = "正確！發動攻擊！";
+            document.getElementById('feedback').style.color = "#4ade80";
+
+            const mainStatVal = state[jobConfig[player.job]?.mainStat || 'atk'];
+            state.mHP -= mainStatVal * 3;
+            
+            const p = document.getElementById('player-sprite');
+            p.style.transform = 'translateX(180px)';
+            setTimeout(() => p.style.transform = 'translateX(0)', 150);
+
+            if(state.mHP <= 0) {
+                processVictory();
+            } else {
+                setTimeout(generateQuestion, 500);
+            }
+            updateUI();
+        }
+
+        function processVictory() {
+            state.lv++;
+            // 升級邏輯簡化...
+            player.lv = state.lv;
+            localStorage.setItem('currentPlayer', JSON.stringify(player));
+            setTimeout(nextMonster, 1000);
+        }
+
+        function updateUI() {
+            document.getElementById('p-lv-disp').innerText = state.lv;
+            document.getElementById('s-atk').innerText = state.atk;
+            document.getElementById('s-spi').innerText = state.spi;
+            document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
+            document.getElementById('m-hp-bar').style.width = Math.max(0, (state.mHP / state.mMaxHP * 100)) + '%';
+        }
+
+        document.getElementById('ans-input').addEventListener('keypress', e => {
+            if(e.key === 'Enter') checkAnswer();
+        });
+    </script>
+</body>
+</html>

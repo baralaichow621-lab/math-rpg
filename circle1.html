@@ -50,7 +50,6 @@
     </div>
 
     <script>
-        // 核心修正：加入預設資料，防止 localStorage 為空時報錯
         let rawData = localStorage.getItem('currentPlayer');
         let player = rawData ? JSON.parse(rawData) : { name: "新冒險者", job: "新手", lv: 1, hp: 100, atk: 10, spi: 10 };
 
@@ -64,7 +63,7 @@
             mHP: 100, mMaxHP: 100
         };
 
-        const jobIcons = { '戰士': '🤺', '魔法師': '🧙', '新手': '👤' };
+        const jobIcons = { '戰士': '🤺', '魔法師': '🧙', '法師': '🧙', '新手': '👤' };
 
         window.onload = () => {
             document.getElementById('p-name-disp').innerText = player.name;
@@ -73,7 +72,8 @@
         };
 
         function nextMonster() {
-            state.mMaxHP = 50 + (state.lv * 20);
+            // 已優化：第一隻怪血量從 70 降至 35，更適合新手
+            state.mMaxHP = 10 + (state.lv * 1);
             state.mHP = state.mMaxHP;
             generateQuestion();
             updateUI();
@@ -107,9 +107,9 @@
             if (Math.abs(val - state.ans) < 0.15) {
                 document.getElementById('feedback').innerText = "命中！";
                 document.getElementById('feedback').style.color = "#4ade80";
+                // 傷害計算：攻擊力 + 精神
                 state.mHP -= (state.atk + state.spi);
                 
-                // 攻擊動畫
                 const p = document.getElementById('player-sprite');
                 p.style.transform = 'translateX(150px)';
                 setTimeout(() => p.style.transform = 'translateX(0)', 150);
@@ -124,7 +124,7 @@
                 }
             } else {
                 state.hp -= 10;
-                document.getElementById('feedback').innerText = `失誤！答案是 ${state.ans.toFixed(2)}`;
+                document.getElementById('feedback').innerText = `失誤！`;
                 document.getElementById('feedback').style.color = "#ef4444";
                 if(state.hp <= 0) { alert("你倒下了..."); location.href='index.html'; }
             }

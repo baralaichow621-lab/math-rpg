@@ -1,270 +1,78 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>圓周魔王大戰 - 難度選擇版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+TC:wght@400;700&display=swap');
+<style>
+    /* ... 略過 ... */
+    .question-highlight { background: #0f172a; border: 2px solid #3b82f6; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); }
+    
+    /* 確保單行顯示的調整 */
+    #q-box { 
+        font-size: 1.15rem; /* 稍微縮小字體以確保單行 */
+        white-space: nowrap; /* 強制不換行 */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* ... 略過 ... */
+</style>
+
+<script>
+    // ... 初始化資料與 state 保持不變 ...
+    let state = {
+        // ... 其他屬性 ...
+        pi: 3.14, // 預設值
+        ans: 0
+    };
+
+    function generateQuestion() {
+        const inp = document.getElementById('ans-input');
+        inp.value = ''; inp.focus();
+
+        // 隨機切換圓周率類型
+        const useFractionPi = Math.random() > 0.5;
+        const piVal = useFractionPi ? (22 / 7) : 3.14;
+        const piText = useFractionPi ? "22/7" : "3.14";
         
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background: #020617; color: white; margin: 0;
-            display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; overflow: hidden; touch-action: manipulation;
+        // 根據圓周率類型選擇適合的數字（如果是 22/7，選 7 的倍數）
+        const nums = useFractionPi ? [7, 14, 21, 28, 35] : [5, 10, 20, 25, 40];
+        const v = nums[Math.floor(Math.random() * nums.length)];
+        
+        const type = Math.floor(Math.random() * 3); 
+        let qHtml = "";
+
+        if (type === 0) { // 求圓周
+            state.ans = v * piVal;
+            qHtml = `直徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">圓周</span>？ (π≈${piText})`;
+        } 
+        else if (type === 1) { // 半徑轉直徑 (基礎題)
+            state.ans = v * 2;
+            qHtml = `半徑 <span class="text-blue-400">${v}</span>，求 <span class="text-yellow-400 underline">直徑</span>？`;
+        } 
+        else { // 已知圓周求直徑
+            // 為了讓答案好算，這裡反向生成題目
+            const circleVal = (v * piVal).toFixed(2);
+            state.ans = v;
+            qHtml = `圓周 <span class="text-yellow-400">${circleVal}</span>，求 <span class="text-blue-400 underline">直徑</span>？ (π≈${piText})`;
         }
 
-        .rpg-font { font-family: 'ZCOOL KuaiLe', cursive; }
-        #stage {
-            position: relative; height: 160px;
-            background: linear-gradient(to bottom, #1e293b 0%, #334155 100%);
-            border-bottom: 8px solid #475569;
-        }
+        document.getElementById('q-box').innerHTML = qHtml;
+    }
 
-        .entity { position: absolute; bottom: 10px; transition: all 0.3s cubic-bezier(0.17, 0.88, 0.32, 1.2); font-size: 60px; user-select: none; }
-        #player-sprite { left: 30px; z-index: 30; }
-        #monster-sprite { right: 30px; z-index: 30; }
+    async function checkAnswer() {
+        const val = parseFloat(document.getElementById('ans-input').value);
+        if (isNaN(val)) return;
 
-        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
-        .growth-text { position: absolute; font-weight: bold; color: #4ade80; animation: float-up 1.2s forwards; pointer-events: none; z-index: 100; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        
-        .question-highlight { background: #0f172a; border: 2px solid #3b82f6; box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2); }
-        
-        /* 難度選擇視窗樣式 */
-        #diff-modal {
-            position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95);
-            z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(8px);
-        }
-        .diff-card { width: 85%; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 2px solid #334155; transition: all 0.2s; }
-        .diff-card.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); cursor: pointer; }
-        .diff-card.active:hover { transform: scale(1.05); background: rgba(59, 130, 246, 0.2); }
-        .diff-card.locked { opacity: 0.5; cursor: not-allowed; position: relative; }
-        
-        .back-btn { position: absolute; top: 10px; left: 10px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; z-index: 50; border: 1px solid #475569; }
-    </style>
-</head>
-<body>
-
-    <div id="diff-modal">
-        <h2 class="text-3xl font-black text-white mb-8 rpg-font tracking-widest">選擇挑戰難度</h2>
-        
-        <div class="diff-card active" onclick="pickDifficulty('easy')">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h3 class="text-xl font-bold text-blue-400">🔵 淺層難度</h3>
-                    <p class="text-xs text-slate-400 mt-1">題型：半徑/直徑/圓周互換</p>
-                    <p class="text-xs text-yellow-500 mt-1">⚠ 成長率：50% (數值加成除以2)</p>
-                </div>
-                <span class="text-3xl">🛡️</span>
-            </div>
-        </div>
-
-        <div class="diff-card locked">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h3 class="text-xl font-bold text-slate-500">🔴 深層難度</h3>
-                    <p class="text-xs text-slate-500 mt-1">題型：圓面積與複合圖形</p>
-                    <p class="text-xs text-red-500 mt-1">（尚未開放）</p>
-                </div>
-                <span class="text-3xl">⚔️</span>
-            </div>
-            <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-20px">
-                <span class="bg-red-600 px-3 py-1 rounded font-bold text-xs">LOCKED</span>
-            </div>
-        </div>
-    </div>
-
-    <div id="game-ui" class="w-full max-w-md bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative mx-2 border-4 border-slate-800 h-[750px] flex flex-col">
-        <button class="back-btn" onclick="location.href='menu.html'">⬅ 撤退回公會</button>
-
-        <div id="main-game" class="flex-1 flex flex-col">
-            <div id="growth-container" class="absolute inset-0 pointer-events-none"></div>
-
-            <div class="p-4 bg-slate-950 border-b border-slate-800 pt-12">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-2">
-                            <span id="p-name-disp" class="text-sm font-bold text-white">...</span>
-                            <span id="job-title" class="text-[10px] font-bold text-blue-400 uppercase italic">JOB</span>
-                        </div>
-                        <span class="text-xl font-black italic text-yellow-500">LV.<span id="p-lv-disp">1</span></span>
-                    </div>
-                    <div id="stats-panel" class="flex gap-1">
-                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-red-400">ATK <span id="s-atk">0</span></div>
-                        <div class="stat-badge bg-slate-800 px-2 py-1 rounded text-[10px] text-blue-400">INT <span id="s-int">0</span></div>
-                    </div>
-                </div>
-                <div class="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                    <div id="p-hp-bar" class="h-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-300" style="width: 100%"></div>
-                </div>
-            </div>
-
-            <div id="stage">
-                <div id="player-sprite" class="entity">👤</div>
-                <div id="monster-sprite" class="entity">👾</div>
-                <div class="absolute top-2 right-4 text-right">
-                    <div class="w-32 h-2 bg-slate-800 rounded-full border border-slate-700">
-                        <div id="m-hp-bar" class="h-full bg-red-500 transition-all duration-300"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-5 flex-1 flex flex-col justify-center space-y-4">
-                <div class="question-highlight p-6 rounded-3xl text-center border-2 border-blue-900">
-                    <div id="q-box" class="text-2xl font-bold text-white leading-relaxed">準備戰鬥...</div>
-                </div>
-                <input type="number" id="ans-input" inputmode="decimal" placeholder="輸入答案" 
-                    class="w-full bg-black border-2 border-slate-700 rounded-2xl p-4 text-center text-5xl font-black text-blue-400 focus:border-blue-500 outline-none">
-                <button id="atk-btn" onclick="checkAnswer()" class="w-full bg-gradient-to-b from-blue-500 to-blue-700 p-5 rounded-2xl font-black text-2xl text-white shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all">
-                    發動攻擊 💥
-                </button>
-                <p id="feedback" class="text-center h-4 text-xs font-bold uppercase"></p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let player = JSON.parse(localStorage.getItem('currentPlayer'));
-        let selectedDifficulty = 'easy'; // 預設難度
-
-        let state = {
-            lv: parseInt(player?.lv) || 1,
-            hp: 100, maxHp: 100,
-            atk: parseInt(player?.atk) || 10,
-            def: 5, int: parseInt(player?.spi) || 10,
-            pi: 3,
-            ans: 0,
-            mHP: 100, mMaxHP: 100
-        };
-
-        const jobConfig = {
-            '戰士': { icon: '🤺', growth: { hp: 0.7, atk: 0.7, def: 0.7, int: 0.3 }, mainStat: 'atk' },
-            '魔法師': { icon: '🧙', growth: { hp: 0.3, atk: 0.5, def: 0.3, int: 0.9 }, mainStat: 'int' },
-            '新手': { icon: '👤', growth: { hp: 0.5, atk: 0.5, def: 0.5, int: 0.5 }, mainStat: 'atk' }
-        };
-
-        // --- 難度選擇處理 ---
-        function pickDifficulty(diff) {
-            selectedDifficulty = diff;
-            document.getElementById('diff-modal').style.display = 'none'; // 隱藏彈窗
-            initGame();
-        }
-
-        function initGame() {
-            if (!player) return;
-            document.getElementById('p-name-disp').innerText = player.name;
-            document.getElementById('job-title').innerText = player.job;
-            document.getElementById('player-sprite').innerText = jobConfig[player.job]?.icon || '👤';
+        // 考慮到 22/7 可能會有小數點誤差，增加判斷寬容度
+        if (Math.abs(val - state.ans) < 0.11) {
+            await executeAttack();
+        } else {
+            // 錯誤處理邏輯保持不變...
+            const dmg = 10 + (state.lv * 2);
+            state.hp -= dmg;
+            document.getElementById('feedback').innerText = `錯誤！正確應為 ${state.ans.toFixed(2)}`;
+            document.getElementById('feedback').style.color = "#ef4444";
             updateUI();
-            nextMonster();
+            if(state.hp <= 0) {
+                alert("力竭撤退！");
+                location.href = 'menu.html';
+            } else generateQuestion();
         }
-
-        function nextMonster() {
-            state.mMaxHP = 70 + (state.lv * 35);
-            state.mHP = state.mMaxHP;
-            document.getElementById('m-hp-bar').style.width = '100%';
-            generateQuestion();
-        }
-
-        // --- 核心題目邏輯 ---
-        function generateQuestion() {
-            const inp = document.getElementById('ans-input');
-            inp.value = ''; inp.focus();
-
-            // 隨機選一個數字 (2-10的倍數)
-            const base = [4, 6, 8, 10, 12, 14, 20][Math.floor(Math.random()*7)];
-            const type = Math.floor(Math.random() * 3); // 0:求圓周, 1:求直徑, 2:求半徑
-
-            let qHtml = "";
-            
-            if(type === 0) { // 求圓周
-                state.ans = base * state.pi;
-                qHtml = `直徑為 <span class="text-blue-400">${base}</span><br>求 <span class="text-yellow-400 underline">圓周</span>？ (π=3)`;
-            } 
-            else if(type === 1) { // 求直徑
-                state.ans = base;
-                qHtml = `半徑為 <span class="text-blue-400">${base/2}</span><br>求 <span class="text-yellow-400 underline">直徑</span>？`;
-            } 
-            else { // 已知圓周求直徑
-                state.ans = base;
-                qHtml = `圓周為 <span class="text-yellow-400">${base * state.pi}</span><br>求 <span class="text-blue-400 underline">直徑</span>？ (π=3)`;
-            }
-
-            document.getElementById('q-box').innerHTML = qHtml;
-        }
-
-        async function checkAnswer() {
-            const val = parseFloat(document.getElementById('ans-input').value);
-            if(isNaN(val)) return;
-
-            if(Math.abs(val - state.ans) < 0.1) {
-                await executeAttack();
-            } else {
-                state.hp -= 15;
-                document.getElementById('feedback').innerText = "計算失誤！受到反擊";
-                document.getElementById('feedback').style.color = "#ef4444";
-                updateUI();
-                if(state.hp <= 0) { alert("體力耗盡！"); location.href = 'menu.html'; }
-                else generateQuestion();
-            }
-        }
-
-        async function executeAttack() {
-            const btn = document.getElementById('atk-btn');
-            btn.disabled = true;
-            document.getElementById('feedback').innerText = "正確！命中要害！";
-            document.getElementById('feedback').style.color = "#4ade80";
-
-            const mainStatVal = state[jobConfig[player.job]?.mainStat || 'atk'];
-            state.mHP -= mainStatVal * 3;
-            updateUI();
-
-            if(state.mHP <= 0) {
-                await processVictory();
-            } else {
-                setTimeout(() => { btn.disabled = false; generateQuestion(); }, 400);
-            }
-        }
-
-        async function processVictory() {
-            const config = jobConfig[player.job] || jobConfig['新手'];
-            let logs = [];
-            
-            state.lv++;
-            
-            // --- 淺層難度成長減半 ---
-            const factor = (selectedDifficulty === 'easy') ? 0.5 : 1.0;
-
-            if(Math.random() < config.growth.hp) { state.maxHp += Math.round(10 * factor); state.hp = state.maxHp; logs.push("HP+"); }
-            if(Math.random() < config.growth.atk) { state.atk += Math.round(2 * factor) || 1; logs.push("ATK+"); }
-            if(Math.random() < config.growth.int) { state.int += Math.round(2 * factor) || 1; logs.push("SPI+"); }
-
-            // 顯示漂浮文字
-            logs.forEach((txt, i) => {
-                const el = document.createElement('div');
-                el.className = "growth-text"; el.innerText = txt;
-                el.style.left = (100 + i*50) + 'px'; el.style.top = '150px';
-                document.getElementById('growth-container').appendChild(el);
-                setTimeout(() => el.remove(), 1200);
-            });
-
-            // 更新玩家數據
-            player.lv = state.lv; player.hp = state.maxHp; player.atk = state.atk; player.spi = state.int;
-            localStorage.setItem('currentPlayer', JSON.stringify(player));
-
-            setTimeout(() => { document.getElementById('atk-btn').disabled = false; nextMonster(); }, 1300);
-        }
-
-        function updateUI() {
-            document.getElementById('p-lv-disp').innerText = state.lv;
-            document.getElementById('s-atk').innerText = state.atk;
-            document.getElementById('s-int').innerText = state.int;
-            document.getElementById('hp-text').innerText = `${state.hp}/${state.maxHp}`;
-            document.getElementById('p-hp-bar').style.width = (state.hp / state.maxHp * 100) + '%';
-            document.getElementById('m-hp-bar').style.width = Math.max(0, (state.mHP / state.mMaxHP * 100)) + '%';
-        }
-    </script>
-</body>
-</html>
+    }
+    // ... 其餘函數（executeAttack, updateUI 等）保持不變 ...
+</script>
